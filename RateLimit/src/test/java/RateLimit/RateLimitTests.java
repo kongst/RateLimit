@@ -101,38 +101,33 @@ public class RateLimitTests {
 	
 	@Test
 	public void testRateLimit() throws Exception {
-		RateLimit rateLimit = new RateLimit();
-		
-		rateLimit.setRatelimit_time(3000);
-		rateLimit.setRatelimit_limit(2);
-		rateLimit.setSuspendedTimee(5000);
-		
-		APIKey apikey1 = new APIKey("key1");
+	
+		APIKey apikey1 = new APIKey("key1", 2, 3000, 5000);
 		boolean result = false;
 		
 		// Rate limit ok
-		result = rateLimit.validateRateLimit(apikey1, 1000);
+		result = apikey1.validateRateLimit(1000);
 		assertEquals(result, true);
 		
-		result = rateLimit.validateRateLimit(apikey1, 1100);
+		result = apikey1.validateRateLimit(1100);
 		assertEquals(result, true);
 		
-		result = rateLimit.validateRateLimit(apikey1, 4200);
+		result = apikey1.validateRateLimit(4200);
 		assertEquals(result, true);
 		
-		result = rateLimit.validateRateLimit(apikey1, 4300);
+		result = apikey1.validateRateLimit(4300);
 		assertEquals(result, true);
 		
 		// Rate limit exceeded
-		result = rateLimit.validateRateLimit(apikey1, 4400);
+		result = apikey1.validateRateLimit(4400);
 		assertEquals(result, false);
 		
 		// Rate limit suspended
-		result = rateLimit.validateRateLimit(apikey1, 9300);
+		result = apikey1.validateRateLimit(9300);
 		assertEquals(result, false);
 		
 		// Rate limit pass suspended time
-		result = rateLimit.validateRateLimit(apikey1, 9500);
+		result = apikey1.validateRateLimit(9500);
 		assertEquals(result, true);
 	}
 }
