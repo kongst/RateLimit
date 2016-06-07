@@ -2,6 +2,9 @@ package RateLimit;
 
 import java.util.HashMap;
 import java.util.Map;
+
+import javax.annotation.PostConstruct;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -26,19 +29,24 @@ public class RateLimit {
     private Map<String, APIKey> apiKeyMap = new HashMap<String, APIKey>();	
 	
     public RateLimit() {    
-    	initialAPIKey();
+   
     }
     
     private void initialAPIKey() {
-    	APIKey apikey1 = new APIKey("key1");
-    	APIKey apikey2 = new APIKey("key2");
-    	APIKey apikey3 = new APIKey("key3");
-    	APIKey apikey4 = new APIKey("key4");
+    	APIKey apikey1 = new APIKey("key1", ratelimit_limit, ratelimit_time, suspendedTime);
+    	APIKey apikey2 = new APIKey("key2", ratelimit_limit, ratelimit_time, suspendedTime);
+    	APIKey apikey3 = new APIKey("key3", ratelimit_limit, ratelimit_time, suspendedTime);
+    	APIKey apikey4 = new APIKey("key4", ratelimit_limit, ratelimit_time, suspendedTime);
     	
     	apiKeyMap.put("key1", apikey1);
     	apiKeyMap.put("key2", apikey2);
     	apiKeyMap.put("key3", apikey3);
     	apiKeyMap.put("key4", apikey4);
+    }
+    
+    @PostConstruct
+    public void init() {
+    	initialAPIKey();
     }
     
     @RequestMapping("/ratelimit")
@@ -53,7 +61,7 @@ public class RateLimit {
 			
 			long currentTime = System.currentTimeMillis();
 			
-			if (validateRateLimit(apiKey,currentTime)) {
+			if (apiKey.validateRateLimit(currentTime)) {
 				result = hotelController.getHotelbyCity(city, sort);						
 			} else {
 				result = "{\"result\": \"limit exceeded\"}";
@@ -64,66 +72,6 @@ public class RateLimit {
 		}
 		
 		return result;
-	}
-    
-	public synchronized boolean validateRateLimit(APIKey apiKey, long currentTime) {
-		
-		if (apiKey.getSuspendedStartTime() == 0) {
-			
-			long currentRateLimitTime = currentTime - apiKey.getRateLimitStartTime();
-	
-			if (currentRateLimitTime > ratelimit_time) { // Passed rate limit time
-				apiKey.setRateLimitCount(1);
-				apiKey.setRateLimitStartTime(currentTime);
-				return true;
-			} else { // in rate limit time
-				apiKey.increaseRateLimitCount();
-
-				if (apiKey.getRateLimitCount() <= ratelimit_limit) {
-					return true;
-				} else {
-					apiKey.setSuspendedStartTime(currentTime);
-					return false;
-				}
-			}
-
-		} else { // Suspended
-			
-			long currentSuspendedTime = currentTime - apiKey.getSuspendedStartTime();
-				
-			if (currentSuspendedTime > suspendedTime) { // Passed suspended time
-				apiKey.setRateLimitCount(1);
-				apiKey.setRateLimitStartTime(currentTime);
-				apiKey.setSuspendedStartTime(0);
-				return true;
-			} else {
-				return false;
-			}
-		}
-	}
-	
-	public void setRatelimit_limit(int ratelimit_limit) {
-		this.ratelimit_limit = ratelimit_limit;
-	}
-	
-	public int getRatelimit_limit() {
-		return this.ratelimit_limit;
-	}
-	
-	public void setRatelimit_time(long ratelimit_time) {
-		this.ratelimit_time = ratelimit_time;
-	}
-	
-	public long getRatelimit_time() {
-		return this.ratelimit_time;
-	}
-	
-	public void setSuspendedTimee(long suspendedTime) {
-		this.suspendedTime = suspendedTime;
-	}
-	
-	public long getSuspendedTime() {
-		return this.suspendedTime;
 	}
 }
 
